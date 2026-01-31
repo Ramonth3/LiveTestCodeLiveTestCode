@@ -6,27 +6,60 @@ pros::Motor left_side_front (1, pros::v5::MotorGears::blue, pros::v5::MotorUnits
 pros::Motor left_side_back (11, pros::v5::MotorGears::blue, pros::v5::MotorUnits::counts);
 pros::Motor right_side_front (10, pros::v5::MotorGears::blue, pros::v5::MotorUnits::counts);
 pros::Motor right_side_back (17, pros::v5::MotorGears::blue, pros::v5::MotorUnits::counts);
+
 pros::Motor feed (20, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
 pros::Motor top (19, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
 pros::Motor middle (9, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
+
 pros::ADIDigitalOut alligner (3);
 pros::ADIDigitalOut flap (4);
+
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
+pros::Imu imu_sensor(18); //reminder to change later to whatever is convinet
 
-// Constants for odometry
+
+
+// Robot Physical Constants for odometry
 const double wheelDiameter = 3.25; // inches
-const double ticksPerRev = 300.0;
 const double trackWidth = 11.5;    // inches between left/right wheels
+const double middleWidth = trackWidth/2; //inches (center)
+const double ticksPerRev = 300.0; //blue motor
 const double inchesPerTick = (M_PI * wheelDiameter) / ticksPerRev;
+const double maxVoltage = 12000.0; //mV
+const double baseVoltage = 4000.0; // min to overcome friction
+
+// PID Controls
+class voltagePID {
+private:
+	double kP, kI, kD;
+	double integral = 0;
+	double prevError = 0;
+	double intergalLimit;
+	double outputLimit;
+	double deadBand = 100.0; //mV
+
+public:
+	voltagePID(double p = 0, double i = 0, double d = 0, double iLimit =2000, double outputLim = maxVoltage) : kP(p), kI(i), kD(d), integralLimit(iLimit), outputLimit(outputLim) {}
+
+	
+
+}
+
+// Odometry Structure
+struct Pos { 
+	double x, y, theta = 0;
+	double thetaDeg;
+
+	Pos(double x=0, double y=0, double theta=0) : x(x), y(y), theta(theta), theta_deg(theta*180/M_PI) {}
+
+}
 
 
-// Odometry state variables
-double x = 0.0;
-double y = 0.0;
-double theta = 0.0;
-int prevLeftTicks = 0;
-int prevRightTicks = 0;
+
+
+
+
 
 
 // PID settings
