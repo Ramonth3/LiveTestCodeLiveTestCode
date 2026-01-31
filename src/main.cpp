@@ -19,13 +19,6 @@ const double wheelDiameter = 3.25; // inches
 const double ticksPerRev = 300.0;
 const double trackWidth = 11.5;    // inches between left/right wheels
 const double inchesPerTick = (M_PI * wheelDiameter) / ticksPerRev;
-const double inchesPerDegree = (M_PI * trackWidth) / 360.0;
-double degreesToTicks(double degrees) {
-    double inches = degrees * inchesPerDegree;
-    return inches / inchesPerTick;
-}
-
-
 
 
 // Odometry state variables
@@ -34,6 +27,51 @@ double y = 0.0;
 double theta = 0.0;
 int prevLeftTicks = 0;
 int prevRightTicks = 0;
+
+
+// PID settings
+double kP = 1.0;        // Start higher for movement
+double kI = 0.01;       // Small integral
+double kD = 0.5;        // Moderate derivative
+double turnkP = 2.0;    // Higher for turning
+double turnkI = 0.02;
+double turnkD = 1.0;
+
+
+// PID control variables
+double error = 0;
+double prevError = 0;
+double derivative = 0;
+double integral = 0;
+double turnError = 0;
+double turnPrevError = 0;
+double turnDerivative = 0;
+double turnIntegral = 0;
+
+
+// Autonomous targets
+double desiredDistanceInches = 0;
+double desiredTurnDegrees = 0;
+double desiredTurnRadians = 0;
+
+
+// Control flags
+bool enableDrivePID = true;
+bool resetDriverSensors = false;
+bool isMoving = false;
+
+
+// Settling thresholds
+const double DISTANCE_TOLERANCE = 0.5;  // inches
+const double ANGLE_TOLERANCE = 2.0;     // degrees
+
+
+
+const double inchesPerDegree = (M_PI * trackWidth) / 360.0;
+double degreesToTicks(double degrees) {
+    double inches = degrees * inchesPerDegree;
+    return inches / inchesPerTick;
+}
 
 
 void Odometry() {
@@ -70,15 +108,6 @@ void Odometry() {
 }
 
 
-
-
-
-
-
-
-
-
-
 void initialize() {
 	pros::lcd::initialize();
 	pros::lcd::set_text(1, "LIVETESTCODE");
@@ -107,41 +136,6 @@ void disabled() {}
 void competition_initialize() {
 
 }
-
-
-//Drive setings
-double kP = 0.3; //Proportional Gain
-double kI = 0.001; //Integral Gain
-double kD = 0.8; //Derivative Gain
-//Turn settings
-double turnkP = 0.4;
-double turnkI = 0.001;
-double turnkD = 1.2;
-
-
-//Auton Settings
-int desiredDistanceInches = 0;
-double desiredTurnDegrees = 0;
-double desiredTurnTicks = 0;
-
-
-//Drive setings
-double error; //sensor value - Desired value (position)
-double prevError = 0; //position 20msecs ago (whatever the delay is set to within drivePID)
-double derivative; //error - prevError (speed)
-double totalError = 0; //totalError = totalError + error (velocity)
-//Turn settings
-double turnError;
-double turnPrevError = 0;
-double turnDerivative;
-double turnTotalError = 0;
-
-//tare motors if needed
-bool resetDriverSensors = false;
-
-
-//on and off switch if needed
-bool enableDrivePID = true;
 
 
 int drivePID(){
