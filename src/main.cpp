@@ -301,7 +301,6 @@ void odometryTask(void* param) {
         	robotPos.vRight);
 		pros::lcd::set_text(2, buf);
 
-        
         pros::delay(10);
 	}
 
