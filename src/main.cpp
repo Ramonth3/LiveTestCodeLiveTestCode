@@ -234,7 +234,7 @@ struct Pos {
 };
 
 Pos robotPos;
-PosControl poseControl;
+PosControl posControl;
 bool autonActive = false;
 uint32_t lastOdomTime = 0;
 
@@ -303,6 +303,53 @@ void odometryTask(void* param) {
 
         pros::delay(10);
 	}
+
+}
+
+// move and apply voltages
+void moveToPosVolt(double targetX, double targetY, double targetThetaDeg, bool relative = true) {
+
+	if (relative) {
+		targetX += robotPos.x;
+        targetY += robotPos.y;
+        targetThetaDeg += robotPos.theta * 180.0 / M_PI;
+	}
+
+	double targetTheta = targetThetaDeg * M_PI / 180.0;
+	posControl.reset();
+
+	bool settled = false;
+    int settleCount = 0;
+    const int settleCycles = 20;
+    const double settlePosTol = 0.25;  // inches
+    const double settleAngTol = 1.0;   // degrees
+
+	uint32_t lastControlTime = pros::millis();
+
+	while (!settled && autonActive) {
+        uint32_t currentTime = pros::millis();
+        double dt = (currentTime - lastControlTime) / 1000.0;
+        if (dt <= 0) dt = 0.02;
+        
+        // Calculate motor voltages
+        double leftVoltage, rightVoltage;
+        posControl.calculateVolt(targetX, targetY, targetTheta, robotPos.x, robotPos.y, robotPos.theta, robotPos.vLeft, robotPos.vRight, leftVoltage, rightVoltage);
+		
+		lastControlTime = currentTime;
+		
+		// Apply voltages
+		left_side_front.move_voltage(leftVoltage);
+		left_side_back.move_voltage(leftVoltage);
+    	right_side_front.move_voltage(rightVoltage);
+    	right_side_back.move_voltage(rightVoltage);
+		pros::delay(10);
+	}
+
+	
+    
+    
+
+
 
 
 }
