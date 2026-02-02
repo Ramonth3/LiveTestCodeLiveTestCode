@@ -123,6 +123,7 @@ public:
 
 	void update_profile(Profile& profile, double dt){
 		if (profile.complete) return;
+
 		double error = profile.target - profile.current;
 		double stoppingDistance = (profile.velocity * profile.velocity) / (2 * profile.maxAccel);
 
@@ -132,11 +133,30 @@ public:
 			profile.complete = true;
 			return;
 		}
-		
+
 	}
 
+	//determine accel direction
+	if (fabs(error) < stoppingDistance) {
+		// DE Accel phase
+		profile.acceleration = -copysign(profile.maxAccel, profile.velocity);
 
-	
+	} else if (fabs(profile.velocity) < profile.maxVel) {
+		// Accel phase
+		profile.acceleration = copysign(profile.maxAccel, error);
+
+	} else {
+		//cruise phase
+		profile.acceleration = 0;
+	}
+
+	//update velocity and pos
+	profile.velocity += profile.acceleration * dt;
+	if (fabs(profile.velocity) > profile.maxVel) {
+		profile.velocity = copysign(profile.maxVel, profile.velocity);
+	}
+
+	profile.current += profile.velocity * dt;
 
 };
 
