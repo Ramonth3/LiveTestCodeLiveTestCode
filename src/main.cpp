@@ -215,12 +215,12 @@ public:
         angularProfile = Profile{};
 	}
 
-	void set_limits(double linear_vel, double angular_vel, 
-                    double linear_accel, double angular_accel) {
-        maxLinearVel = linear_vel;
-        maxAngularVel = angular_vel;
-        maxLinearAccel = linear_accel;
-        maxAngularAccel = angular_accel;
+	void set_limits(double linearVel, double angularVel, 
+                    double linearAccel, double angularAccel) {
+        maxLinearVel = linearVel;
+        maxAngularVel = angularVel;
+        maxLinearAccel = linearAccel;
+        maxAngularAccel = angularAccel;
     }
 };
 
