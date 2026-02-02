@@ -173,11 +173,16 @@ public:
 		while (headingError > M_PI) headingError -= 2 * M_PI;
         while (headingError < -M_PI) headingError += 2 * M_PI;
 
+		// Final angle error
+        double angleError = targetTheta - currentTheta;
+        while (angleError > M_PI) angleError -= 2 * M_PI;
+        while (angleError < -M_PI) angleError += 2 * M_PI;
+
 		// Update motion profiles
 		linearProfile.target = 0; //obv we want distance 0, lol
 		linearProfile.maxVel = maxLinearVel;
 		linearProfile.maxAccel = maxLinearAccel;
-		upadateaProfile(linaerProfile, 0.02);
+		update_profile(linearProfile, 0.02);
 
 		// Calc PID volts
 		double linearVoltage = linearPID.calculate(distanceError);
