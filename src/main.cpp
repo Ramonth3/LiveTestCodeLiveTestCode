@@ -1,6 +1,5 @@
 #include "main.h"
 
-
 //declare devices
 pros::Motor left_side_front (1, pros::v5::MotorGears::blue, pros::v5::MotorUnits::counts);
 pros::Motor left_side_back (11, pros::v5::MotorGears::blue, pros::v5::MotorUnits::counts);
@@ -17,8 +16,6 @@ pros::ADIDigitalOut flap (4);
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 pros::Imu imu_sensor(18); //reminder to change later to whatever is convinet
-
-
 
 // Robot Physical Constants for odometry
 const double wheelDiameter = 3.25; // inches
@@ -218,11 +215,14 @@ public:
         angularProfile = Profile{};
 	}
 
-	
-
+	void set_limits(double linear_vel, double angular_vel, 
+                    double linear_accel, double angular_accel) {
+        maxLinearVel = linear_vel;
+        maxAngularVel = angular_vel;
+        maxLinearAccel = linear_accel;
+        maxAngularAccel = angular_accel;
+    }
 };
-
-//ignore for now
 
 
 // Odometry Structure
@@ -237,77 +237,15 @@ struct Pos {
 
 
 
-
-
-
-// PID settings
-double kP = 1.0;        // Start higher for movement
-double kI = 0.01;       // Small integral
-double kD = 0.5;        // Moderate derivative
-double turnkP = 2.0;    // Higher for turning
-double turnkI = 0.02;
-double turnkD = 1.0;
-
-
-// PID control variables
-double error = 0;
-double prevError = 0;
-double derivative = 0;
-double integral = 0;
-double turnError = 0;
-double turnPrevError = 0;
-double turnDerivative = 0;
-double turnIntegral = 0;
-
-
-// Autonomous targets
-double desiredDistanceInches = 0;
-double desiredTurnDegrees = 0;
-double desiredTurnRadians = 0;
-
-
-// Control flags
-bool enableDrivePID = true;
-bool resetDriverSensors = false;
-bool isMoving = false;
-
-
-// Settling thresholds
-const double DISTANCE_TOLERANCE = 0.5;  // inches
-const double ANGLE_TOLERANCE = 2.0;     // degrees
-
-
-
-const double inchesPerDegree = (M_PI * trackWidth) / 360.0;
-double degreesToTicks(double degrees) {
-    double inches = degrees * inchesPerDegree;
-    return inches / inchesPerTick;
-}
-
-
-void Odometry() {
-//just wrong
-}
-
-
 void initialize() {
-	pros::lcd::initialize();
-	pros::lcd::set_text(1, "LIVETESTCODE");
-	//screen test
+	// pros::lcd::initialize();
 
 
-	left_side_front.set_reversed(false);
-    left_side_back.set_reversed(false);
-    right_side_front.set_reversed(true);
-    right_side_back.set_reversed(true);
-	//makes all motors facing the same direction
-	left_side_back.tare_position();
-	left_side_front.tare_position();
-	right_side_back.tare_position();
-	right_side_front.tare_position();
+	//left_side_front.set_reversed(false);
+    //left_side_back.set_reversed(false);
+    //right_side_front.set_reversed(true);
+    //right_side_back.set_reversed(true);
 
-
-	pros::Task odomTask(Odometry);
 }
 
 
@@ -316,45 +254,21 @@ void disabled() {}
 
 void competition_initialize() {
 
-
-		// Debug output
-        //pros::lcd::set_text(5, "Error: " + std::to_string(error));
-        //pros::lcd::set_text(6, "TurnErr: " + std::to_string(turnError));
-        //pros::lcd::set_text(7, "L: " + std::to_string(leftVoltage) + " R: " + std::to_string(rightVoltage));
 }
 
 
 void autonomous() {
-	resetDriverSensors = false;
-
-
-	desiredDistanceInches = 24;
-	pros::delay(2000);
-	desiredTurnDegrees = 0;
-	pros::delay(2000);
-	desiredDistanceInches = -24;
-	pros::delay(2000);
-	desiredTurnDegrees = 360;
-	pros::delay(2000);
-	desiredDistanceInches = 0;
-	pros::delay(2000);
-	desiredTurnDegrees = -360;
 
 }
 
 
 void opcontrol() {
-	enableDrivePID = false;
-	//no longer needed
-
-
     alligner.set_value(false);
     flap.set_value(false);
 	//state for start of match pneumatics
 
     bool alll = false; //boolean for alligner
     bool flll = true; //boolean for flap
-
 
     while (true) {
         int vertical = master.get_analog(ANALOG_LEFT_Y);
@@ -396,7 +310,6 @@ void opcontrol() {
             flap.set_value(flll);
 			//invert boolean logic for sketchy fix for 1 working and 1 broken solenoid
         }
-
 
         if (master.get_digital_new_press(DIGITAL_B)) {
             alll = !alll;
