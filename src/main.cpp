@@ -134,29 +134,86 @@ public:
 			return;
 		}
 
+			//determine accel direction
+		if (fabs(error) < stoppingDistance) {
+			// DE Accel phase
+			profile.acceleration = -copysign(profile.maxAccel, profile.velocity);
+
+		} else if (fabs(profile.velocity) < profile.maxVel) {
+			// Accel phase
+			profile.acceleration = copysign(profile.maxAccel, error);
+
+		} else {
+			//cruise phase
+			profile.acceleration = 0;
+		}
+
+		//update velocity and pos
+		profile.velocity += profile.acceleration * dt;
+		if (fabs(profile.velocity) > profile.maxVel) {
+			profile.velocity = copysign(profile.maxVel, profile.velocity);
+		}
+
+		profile.current += profile.velocity * dt;
+
 	}
 
-	//determine accel direction
-	if (fabs(error) < stoppingDistance) {
-		// DE Accel phase
-		profile.acceleration = -copysign(profile.maxAccel, profile.velocity);
+	void calculateVolt(double targetX, double targetY, double targetTheta, double currentX, double currentY, double currentTheta, double current_v_left, double current_v_right, double& leftVoltage, double& rightVoltage){
 
-	} else if (fabs(profile.velocity) < profile.maxVel) {
-		// Accel phase
-		profile.acceleration = copysign(profile.maxAccel, error);
+		// Pos error
+		double dX = targetX - currentX;
+		double dY = targetY - currentY;
+		double distanceError = sqrt(dX*dX + dY*dY);
 
-	} else {
-		//cruise phase
-		profile.acceleration = 0;
+		// Desired heading to target
+		double desiredHeading = atan2(dY, dX);
+
+		// Heading error (shortest path)
+		double headingError = desiredHeading - currentTheta;
+		while (headingError > M_PI) headingError -= 2 * M_PI;
+        while (headingError < -M_PI) headingError += 2 * M_PI;
+
+		// Update motion profiles
+		linearProfile.target = 0; //obv we want distance 0, lol
+		linearProfile.maxVel = maxLinearVel;
+		linearProfile.maxAccel = maxLinearAccel;
+		upadateaProfile(linaerProfile, 0.02);
+
+		// Calc PID volts
+		double linearVoltage = linearPID.calculate(distanceError);
+        double angularVoltage = angularPID.calculate(angleError); // Did i not add angle error???? check later
+        double headingVoltage = headingPID.calculate(headingError);
+
+		//Feedforward volt (based on motion profile)
+		double ffLinear = kv * linearProfile.velocity + ka * linearProfile.acceleration;
+        double ffAngular = kav * angularProfile.velocity + kaa * angularProfile.acceleration;
+        
+        // Combine feedback and feedforward
+        double totalLinear = linearVoltage + ffLinear;
+        double totalAngular = angularVoltage + ffAngular + headingVoltage;
+        
+        // Differential drive conversion to motor voltages
+        leftVoltage = totalLinear - totalAngular;
+        rightVoltage = totalLinear + totalAngular;
+        
+        // Limit voltages
+        double max_voltage = std::max(fabs(leftVoltage), fabs(rightVoltage));
+        if (max_voltage > maxVoltage) {
+            double scale = maxVoltage / max_voltage;
+            leftVoltage *= scale;
+            rightVoltage *= scale;
+		}
 	}
 
-	//update velocity and pos
-	profile.velocity += profile.acceleration * dt;
-	if (fabs(profile.velocity) > profile.maxVel) {
-		profile.velocity = copysign(profile.maxVel, profile.velocity);
+	void reset() {
+        linearPID.reset();
+        angularPID.reset();
+        headingPID.reset();
+        linearProfile = Profile{};
+        angularProfile = Profile{};
 	}
 
-	profile.current += profile.velocity * dt;
+	
 
 };
 
