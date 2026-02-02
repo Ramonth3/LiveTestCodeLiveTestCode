@@ -233,6 +233,10 @@ struct Pos {
 	Pos(double x, double y, double theta) : x(x), y(y), theta(theta) {}
 };
 
+Pos robotPos;
+PosControl poseControl;
+bool autonActive = false;
+uint32_t lastOdomTime = 0;
 
 void odometryTask(void* param) {
 	int32_t lastLeftTick = 0;
@@ -250,21 +254,55 @@ void odometryTask(void* param) {
 		//read sensors
 		int32_t leftTicks = (left_side_front.get_position() + left_side_back.get_position()) / 2;
         int32_t rightTicks = (right_side_front.get_position() + right_side_back.get_position()) / 2;
-        double imu_heading = imu.get_rotation() * M_PI / 180.0;
+        double imuHeading = imu.get_rotation() * M_PI / 180.0;
 
-		//left off here
-		// 
-		// 
-		// 
-		// 
-		// 
-		// 
-		// 
-		// 
-		// 
-		// 
+		 // Calculate deltas
+        double deltaLeft = (leftTicks - lastLeftTick) * inchesPerTick;
+        double deltaRight = (rightTicks - lastRightTick) * inchesPerTick;
+        
+        // Calculate velocities (inches/sec)
+        robotPos.vLeft = deltaLeft / dT;
+        robotPos.vRight = deltaRight / dT;
+        
+        // Update pose
+        double deltaDistance = (deltaLeft + deltaRight) / 2.0;
+        double deltaTheta = (deltaRight - deltaLeft) / trackWidth;
 
+		if (!imu.is_calibrating()) {
+			double imuDelta = imuHeading - robotPos.theta;
+			while (imuDelta > M_PI) imuDelta -= 2 * M_PI;
+			while (imuDelta < M_PI) imuDelta += 2 * M_PI;
+			deltaTheta = 0.3 * deltaTheta + 0.7 * imuDelta;
+		}
 
+		// normalize the angle
+		robotPos.theta += deltaTheta;
+		robotPos.x += deltaDistance * cos(robotPos.theta);
+		robotPos.y += deltaDistance * sin(robotPos.theta);
+
+		// update last values
+		lastLeftTick = leftTicks;
+        lastRightTick = rightTicks;
+        lastTime = currentTime;
+
+		// Display
+		pros::lcd::set_text(0, "Voltage Native PID");
+
+		char buf[64];
+
+			sprintf(buf, "X:%.1f Y:%.1f θ:%.1f°",
+        	robotPos.x,
+        	robotPos.y,
+        	robotPos.theta * 180.0 / M_PI);
+		pros::lcd::set_text(1, buf);
+
+		sprintf(buf, "VL:%.1f VR:%.1f in/s",
+        	robotPos.vLeft,
+        	robotPos.vRight);
+		pros::lcd::set_text(2, buf);
+
+        
+        pros::delay(10);
 	}
 
 
