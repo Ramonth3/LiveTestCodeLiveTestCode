@@ -15,7 +15,7 @@ pros::ADIDigitalOut flap (4);
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
-pros::Imu imu_sensor(18); //reminder to change later to whatever is convinet
+pros::Imu imu(18); //reminder to change later to whatever is convinet
 
 // Robot Physical Constants for odometry
 const double wheelDiameter = 3.25; // inches
@@ -232,6 +232,43 @@ struct Pos {
 	Pos() = default;
 	Pos(double x, double y, double theta) : x(x), y(y), theta(theta) {}
 };
+
+
+void odometryTask(void* param) {
+	int32_t lastLeftTick = 0;
+	int32_t lastRightTick = 0;
+	uint32_t lastTime = pros::millis();
+
+	imu.reset();
+	while (imu.is_calibrating()) pros::delay(10); //helps not provide false info while calibrates
+
+	while (true) {
+		uint32_t currentTime = pros::millis();
+		double dT = (currentTime - lastTime) / 1000.0;
+		if (dT <= 0) dT = 0.001;
+
+		//read sensors
+		int32_t leftTicks = (left_side_front.get_position() + left_side_back.get_position()) / 2;
+        int32_t rightTicks = (right_side_front.get_position() + right_side_back.get_position()) / 2;
+        double imu_heading = imu.get_rotation() * M_PI / 180.0;
+
+		//left off here
+		// 
+		// 
+		// 
+		// 
+		// 
+		// 
+		// 
+		// 
+		// 
+		// 
+
+
+	}
+
+
+}
 
 
 
