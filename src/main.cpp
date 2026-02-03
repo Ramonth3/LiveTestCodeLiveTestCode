@@ -83,9 +83,7 @@ public:
 		kI = i;
 		kD = d;
 	}
-
 };
-
 
 class PosControl {
 private:
@@ -154,7 +152,6 @@ public:
 		}
 
 		profile.current += profile.velocity * dt;
-
 	}
 
 	void calculateVolt(double targetX, double targetY, double targetTheta, double currentX, double currentY, double currentTheta, double current_v_left, double current_v_right, double& leftVoltage, double& rightVoltage){
@@ -315,7 +312,6 @@ void odometryTask(void* param) {
 
         pros::delay(10);
 	}
-
 }
 
 // move and apply voltages
@@ -386,7 +382,6 @@ void moveToPosVolt(double targetX, double targetY, double targetThetaDeg, bool r
 		pros::lcd::print(4, "Dist:%.2f Ang:%.1f", distance, angleError * 180.0 / M_PI); 
 		pros::lcd::print(5, "Settle:%d/20", settleCount); 
 		pros::delay(10);
-
 	}
 
     pros::delay(10);
@@ -397,10 +392,6 @@ void moveToPosVolt(double targetX, double targetY, double targetThetaDeg, bool r
     right_side_front.move_voltage(0);
     right_side_back.move_voltage(0);
 }
-
-
-
-
 
 void initialize() {
 	pros::lcd::initialize();
@@ -437,12 +428,9 @@ void initialize() {
     pros::lcd::set_text(0, "System Ready");
 }
 
-
 void disabled() {}
 
-
 void competition_initialize() {}
-
 
 void autonomous() {
 	autonActive = true;
@@ -466,7 +454,6 @@ void autonomous() {
     autonActive = false;
     pros::lcd::set_text(0, "Autonomous Complete");
 }
-
 
 void opcontrol() {
     alligner.set_value(false);
@@ -531,5 +518,4 @@ void opcontrol() {
         }
         pros::delay(20);
     }
-
 }
