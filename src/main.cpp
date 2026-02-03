@@ -1,4 +1,6 @@
 #include "main.h"
+#include <cmath>
+#include <algorithm>
 
 //declare devices
 pros::Motor left_side_front (1, pros::v5::MotorGears::blue, pros::v5::MotorUnits::counts);
@@ -54,14 +56,14 @@ public:
 		double voltage = (kP * error) + (kI * integral) + (kD * derivative);
 
 		//if moving add base voltage to overcome static friction
-		if(fabs(voltage) > 0){
-			double direction = (voltage > 0) ? 1.0 : 1.0;
+		if(fabs(voltage) > 1000.0){
+			double direction = (voltage > 0) ? 1.0 : -1.0;
 			voltage += direction * baseVoltage;
 		}
 
 		//output limits
 		if (voltage > outputLimit) voltage = outputLimit;
-		if (voltage < outputLimit) voltage = -outputLimit;
+		if (voltage < -outputLimit) voltage = -outputLimit;
 
 		//deadband
 		if(fabs(voltage) < deadBand) voltage = 0;
@@ -88,7 +90,7 @@ public:
 class PosControl {
 private:
 
-	voltagePID linearPID; // linaer motion inch to mV
+	voltagePID linearPID; // linear motion inch to mV
 	voltagePID angularPID; // rotation radian to mV
 	voltagePID headingPID; // heading radians to mV
 
@@ -177,13 +179,23 @@ public:
 
 		// Update motion profiles
 		linearProfile.target = 0; //obv we want distance 0, lol
+		linearProfile.current = -distanceError;
+
 		linearProfile.maxVel = maxLinearVel;
 		linearProfile.maxAccel = maxLinearAccel;
 		update_profile(linearProfile, 0.02);
 
+		angularProfile.target = 0;
+		angularProfile.current = -angleError;
+
+
+		angularProfile.maxVel = maxAngularVel * M_PI / 180.0;
+		angularProfile.maxAccel = maxAngularAccel * M_PI / 180.0; 
+		update_profile(angularProfile, 0.02);
+
 		// Calc PID volts
 		double linearVoltage = linearPID.calculate(distanceError);
-        double angularVoltage = angularPID.calculate(angleError); // Did i not add angle error???? check later
+        double angularVoltage = angularPID.calculate(angleError);
         double headingVoltage = headingPID.calculate(headingError);
 
 		//Feedforward volt (based on motion profile)
@@ -271,7 +283,7 @@ void odometryTask(void* param) {
 		if (!imu.is_calibrating()) {
 			double imuDelta = imuHeading - robotPos.theta;
 			while (imuDelta > M_PI) imuDelta -= 2 * M_PI;
-			while (imuDelta < M_PI) imuDelta += 2 * M_PI;
+			while (imuDelta < -M_PI) imuDelta += 2 * M_PI;
 			deltaTheta = 0.3 * deltaTheta + 0.7 * imuDelta;
 		}
 
@@ -324,6 +336,9 @@ void moveToPosVolt(double targetX, double targetY, double targetThetaDeg, bool r
     const double settlePosTol = 0.25;  // inches
     const double settleAngTol = 1.0;   // degrees
 
+	double leftVoltage = 0;
+	double rightVoltage = 0;
+
 	uint32_t lastControlTime = pros::millis();
 
 	while (!settled && autonActive) {
@@ -332,7 +347,7 @@ void moveToPosVolt(double targetX, double targetY, double targetThetaDeg, bool r
         if (dt <= 0) dt = 0.02;
         
         // Calculate motor voltages
-        double leftVoltage, rightVoltage;
+        
         posControl.calculateVolt(targetX, targetY, targetTheta, robotPos.x, robotPos.y, robotPos.theta, robotPos.vLeft, robotPos.vRight, leftVoltage, rightVoltage);
 		
 		lastControlTime = currentTime;
@@ -343,35 +358,44 @@ void moveToPosVolt(double targetX, double targetY, double targetThetaDeg, bool r
     	right_side_front.move_voltage(rightVoltage);
     	right_side_back.move_voltage(rightVoltage);
 		pros::delay(10);
+
+		// check if a target
+		double dX = targetX - robotPos.x;
+    	double dY = targetY - robotPos.y;
+    	double distance = sqrt(dX*dX + dY*dY);
+
+		double angleError = targetTheta - robotPos.theta;
+    	while (angleError > M_PI) angleError -= 2 * M_PI;
+    	while (angleError < -M_PI) angleError += 2 * M_PI;
+        
+    	bool atPosition = distance < settlePosTol;
+    	bool atAngle = fabs(angleError * 180.0 / M_PI) < settleAngTol;
+    	bool stopped = (fabs(robotPos.vLeft) < 0.1 && fabs(robotPos.vRight) < 0.1);
+        
+    	if (atPosition && atAngle && stopped) {
+    	    settleCount++;
+    	    if (settleCount >= settleCycles) {
+    	        settled = true;
+    	    }
+    	} else {
+    	        settleCount = 0;
+    	}
+
+		// Debug display
+    	pros::lcd::print(3, "L:%dV R:%dV", (int)leftVoltage, (int)rightVoltage); 
+		pros::lcd::print(4, "Dist:%.2f Ang:%.1f", distance, angleError * 180.0 / M_PI); 
+		pros::lcd::print(5, "Settle:%d/20", settleCount); 
+		pros::delay(10);
+
 	}
 
-	// check if a target
-	double dX = targetX - robotPos.x;
-    double dY = targetY - robotPos.y;
-    double distance = sqrt(dX*dX + dY*dY);
+    pros::delay(10);
 
-	double angleError = targetTheta - robotPos.theta;
-        while (angleError > M_PI) angleError -= 2 * M_PI;
-        while (angleError < -M_PI) angleError += 2 * M_PI;
-        
-        bool atPosition = distance < settlePosTol;
-        bool atAngle = fabs(angleError * 180.0 / M_PI) < settleAngTol;
-        bool stopped = (fabs(robotPos.vLeft) < 0.1 && fabs(robotPos.vRight) < 0.1);
-        
-        if (atPosition && atAngle && stopped) {
-            settleCount++;
-            if (settleCount >= settleCycles) {
-                settled = true;
-            }
-        } else {
-            settleCount = 0;
-        }
-    
-    
-
-
-
-
+	// Stop motors (0 voltage = brake if in brake mode)
+    left_side_front.move_voltage(0);
+    left_side_back.move_voltage(0);
+    right_side_front.move_voltage(0);
+    right_side_back.move_voltage(0);
 }
 
 
@@ -379,14 +403,38 @@ void moveToPosVolt(double targetX, double targetY, double targetThetaDeg, bool r
 
 
 void initialize() {
-	// pros::lcd::initialize();
-
-
-	//left_side_front.set_reversed(false);
-    //left_side_back.set_reversed(false);
-    //right_side_front.set_reversed(true);
-    //right_side_back.set_reversed(true);
-
+	pros::lcd::initialize();
+    pros::lcd::set_text(0, "Initializing...");
+    
+    // Configure motor directions
+    left_side_front.set_reversed(false);
+    left_side_back.set_reversed(false);
+    right_side_front.set_reversed(true);
+    right_side_back.set_reversed(true);
+    
+    // Configure brake modes for autonomous
+    left_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+    left_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+    right_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+    right_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+    
+    // Reset encoders
+    left_side_front.tare_position();
+    left_side_back.tare_position();
+    right_side_front.tare_position();
+    right_side_back.tare_position();
+    
+    // Set motion limits (start conservative)
+    posControl.set_limits(24.0, 180.0, 36.0, 360.0);
+    
+    // Start odometry task
+    pros::Task odom_task(odometryTask, nullptr, "Odometry");
+    
+    // Wait for IMU calibration
+    pros::delay(2000);
+    
+    pros::lcd::clear();
+    pros::lcd::set_text(0, "System Ready");
 }
 
 
@@ -399,7 +447,26 @@ void competition_initialize() {
 
 
 void autonomous() {
-
+	autonActive = true;
+    pros::lcd::set_text(0, "Autonomous Running");
+    
+    // Test movements
+    moveToPosVolt(24.0, 0.0, 0.0, true);  // Move 24 inches forward
+    pros::delay(500);
+    
+    moveToPosVolt(0.0, 0.0, 90.0, true);  // Turn 90 degrees
+    pros::delay(500);
+    
+    moveToPosVolt(12.0, 0.0, 90.0, true);  // Move 12 inches
+    pros::delay(500);
+    
+    moveToPosVolt(0.0, 0.0, 0.0, true);  // Turn back to 0
+    pros::delay(500);
+    
+    moveToPosVolt(-36.0, 0.0, 0.0, true);  // Move back to start
+    
+    autonActive = false;
+    pros::lcd::set_text(0, "Autonomous Complete");
 }
 
 
@@ -457,7 +524,7 @@ void opcontrol() {
             alligner.set_value(alll);
 			//invert boolean logic (normal edition)
         }
-        pros::delay(20);
+        pros::delay(10);
     }
 
 }
