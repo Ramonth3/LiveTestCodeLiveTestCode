@@ -336,7 +336,7 @@ void moveToPosVolt(double targetX, double targetY, double targetThetaDeg, bool r
         posControl.calculateVolt(targetX, targetY, targetTheta, robotPos.x, robotPos.y, robotPos.theta, robotPos.vLeft, robotPos.vRight, leftVoltage, rightVoltage);
 		
 		lastControlTime = currentTime;
-		
+
 		// Apply voltages
 		left_side_front.move_voltage(leftVoltage);
 		left_side_back.move_voltage(leftVoltage);
@@ -345,7 +345,27 @@ void moveToPosVolt(double targetX, double targetY, double targetThetaDeg, bool r
 		pros::delay(10);
 	}
 
-	
+	// check if a target
+	double dX = targetX - robotPos.x;
+    double dY = targetY - robotPos.y;
+    double distance = sqrt(dX*dX + dY*dY);
+
+	double angleError = targetTheta - robotPos.theta;
+        while (angleError > M_PI) angleError -= 2 * M_PI;
+        while (angleError < -M_PI) angleError += 2 * M_PI;
+        
+        bool atPosition = distance < settlePosTol;
+        bool atAngle = fabs(angleError * 180.0 / M_PI) < settleAngTol;
+        bool stopped = (fabs(robotPos.vLeft) < 0.1 && fabs(robotPos.vRight) < 0.1);
+        
+        if (atPosition && atAngle && stopped) {
+            settleCount++;
+            if (settleCount >= settleCycles) {
+                settled = true;
+            }
+        } else {
+            settleCount = 0;
+        }
     
     
 
