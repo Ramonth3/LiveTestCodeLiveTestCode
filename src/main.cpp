@@ -17,7 +17,6 @@ pros::adi::DigitalOut descore (7);
 pros::adi::DigitalOut flap (8);
 pros::adi::DigitalOut middle (6);
 
-
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 pros::Imu imu(18); //reminder to change later to whatever is convinet
@@ -480,45 +479,69 @@ void opcontrol() {
 		//rigth joystick left/right
 
 		if (master.get_digital(DIGITAL_R1)){
-            feed.move_velocity(-600);
-            top.move_velocity(-600);
-			//intake without score
-           
-        }else if(master.get_digital(DIGITAL_R2)){
-            feed.move_velocity(600);
-			//outake for bottom mid goals
-           
-        }else if (master.get_digital(DIGITAL_L1)){
-            top.move_velocity(600);
-            feed.move_velocity(-600);
-            middle.move_velocity(600);
-			//outake for top mid goals
+			middleRight.move_velocity(-600); 
+            middleLeft.move_velocity(600);
+			// intake without scoring
 
-        }else if(master.get_digital(DIGITAL_L2)){
+		}else if(master.get_digital(DIGITAL_R2)){
+			middleRight.move_velocity(600); 
+            middleLeft.move_velocity(-600);
             top.move_velocity(600);
-            feed.move_velocity(-600);
-            middle.move_velocity(-600);
-			//outake for long goals goals
-           
-        }else{
-            top.move_velocity(0);
-            feed.move_velocity(0);
-            middle.move_velocity(0);
-        }
+			// outake for bottom mid
+
+		}else if (master.get_digital(DIGITAL_L1)){
+			top.move_velocity(-600); 
+			middleRight.move_velocity(-600);
+            middleLeft.move_velocity(600);
+            //outake for top mid goals
+
+		}else if(master.get_digital(DIGITAL_L2)){
+			top.move_velocity(-600); 
+			middleRight.move_velocity(-600);
+            middleLeft.move_velocity(600);
+			//outake for long goals
+
+		}else{
+			top.move_velocity(0);
+			middleRight.move_velocity(0);
+            middleLeft.move_velocity(0);
+		}
 
         if (master.get_digital_new_press(DIGITAL_A)) {
-            alll = !alll;
             flll = !flll;
-            alligner.set_value(alll);
             flap.set_value(flll);
-			//invert boolean logic for sketchy fix for 1 working and 1 broken solenoid
         }
 
         if (master.get_digital_new_press(DIGITAL_B)) {
-            alll = !alll;
-            alligner.set_value(alll);
-			//invert boolean logic (normal edition)
+            dlll = !dlll;
+            descore.set_value(dlll);
         }
-        pros::delay(20);
+        
+        if (master.get_digital_new_press(DIGITAL_Y)){
+            mlll = !mlll;
+            middle.set_value(mlll);
+        }
+		
+
+        // LCD Display
+        pros::lcd::print(0, "LF:%.1f  LB:%.1f  RF:%.1f  RB:%.1f",
+        left_side_front.get_temperature(),
+        left_side_back.get_temperature(),
+        right_side_front.get_temperature(),
+        right_side_back.get_temperature()
+        );
+
+        pros::lcd::print(1, "middleRight:%.1f  Top:%.1f",
+        middleRight.get_temperature(),
+        top.get_temperature()
+        );
+
+        pros::lcd::print(2, "x:%.2f  y:%.2f", x, y);
+        pros::lcd::print(3, "θ:%.2f rad", theta);
+
+
+		//blue is 600, green is 200, red is 100
+		//6:1,         18:1,         36:1
+		pros::delay(20);
     }
 }
