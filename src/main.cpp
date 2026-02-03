@@ -8,12 +8,15 @@ pros::Motor left_side_back (11, pros::v5::MotorGears::blue, pros::v5::MotorUnits
 pros::Motor right_side_front (10, pros::v5::MotorGears::blue, pros::v5::MotorUnits::counts);
 pros::Motor right_side_back (17, pros::v5::MotorGears::blue, pros::v5::MotorUnits::counts);
 
-pros::Motor feed (20, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
-pros::Motor top (19, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
-pros::Motor middle (9, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
+pros::Motor middleRight (20, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
+pros::Motor middleLeft (18, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
 
-pros::ADIDigitalOut alligner (3);
-pros::ADIDigitalOut flap (4);
+pros::Motor top (19, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
+
+pros::adi::DigitalOut descore (7);
+pros::adi::DigitalOut flap (8);
+pros::adi::DigitalOut middle (6);
+
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
