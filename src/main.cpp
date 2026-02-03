@@ -458,49 +458,50 @@ void autonomous() {
 }
 
 void opcontrol() {
-    alligner.set_value(false);
+    descore.set_value(false);
     flap.set_value(false);
-	//state for start of match pneumatics
+    middle.set_value(true);
 
-    bool alll = false; //boolean for alligner
+    bool dlll = false; //boolean for descore
+
     bool flll = true; //boolean for flap
 
-    while (true) {
-        int vertical = master.get_analog(ANALOG_LEFT_Y);
-        int horizontal = master.get_analog(ANALOG_RIGHT_X);
-        int left = vertical + horizontal;
-        int right = vertical - horizontal;
-        left_side_front.move(left);
-        left_side_back.move(left);
-        right_side_front.move(right);
-        right_side_back.move(right);
-		//arcade drive 
-		//left joystick forward/back
-		//rigth joystick left/right
+    bool mlll = false;
+
+	while (true) {
+		int vertical = master.get_analog(ANALOG_LEFT_Y);
+		int horizontal = master.get_analog(ANALOG_RIGHT_X);
+		int left = vertical + horizontal;
+    	int right = vertical - horizontal;
+		left_side_front.move(left);
+		left_side_back.move(left);
+		right_side_front.move(right);
+		right_side_back.move(right);
+
+
+
+
 
 		if (master.get_digital(DIGITAL_R1)){
 			middleRight.move_velocity(-600); 
             middleLeft.move_velocity(600);
-			// intake without scoring
 
 		}else if(master.get_digital(DIGITAL_R2)){
 			middleRight.move_velocity(600); 
             middleLeft.move_velocity(-600);
             top.move_velocity(600);
-			// outake for bottom mid
 
 		}else if (master.get_digital(DIGITAL_L1)){
 			top.move_velocity(-600); 
 			middleRight.move_velocity(-600);
             middleLeft.move_velocity(600);
-            //outake for top mid goals
+            
 
 		}else if(master.get_digital(DIGITAL_L2)){
 			top.move_velocity(-600); 
 			middleRight.move_velocity(-600);
             middleLeft.move_velocity(600);
-			//outake for long goals
-
+			
 		}else{
 			top.move_velocity(0);
 			middleRight.move_velocity(0);
@@ -543,5 +544,5 @@ void opcontrol() {
 		//blue is 600, green is 200, red is 100
 		//6:1,         18:1,         36:1
 		pros::delay(20);
-    }
+	}
 }
