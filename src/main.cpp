@@ -524,21 +524,7 @@ void opcontrol() {
         }
 		
 
-        // LCD Display
-        pros::lcd::print(0, "LF:%.1f  LB:%.1f  RF:%.1f  RB:%.1f",
-        left_side_front.get_temperature(),
-        left_side_back.get_temperature(),
-        right_side_front.get_temperature(),
-        right_side_back.get_temperature()
-        );
-
-        pros::lcd::print(1, "middleRight:%.1f  Top:%.1f",
-        middleRight.get_temperature(),
-        top.get_temperature()
-        );
-
-        pros::lcd::print(2, "x:%.2f  y:%.2f", x, y);
-        pros::lcd::print(3, "θ:%.2f rad", theta);
+        
 
 
 		//blue is 600, green is 200, red is 100
