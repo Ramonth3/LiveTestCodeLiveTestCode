@@ -441,9 +441,7 @@ void initialize() {
 void disabled() {}
 
 
-void competition_initialize() {
-
-}
+void competition_initialize() {}
 
 
 void autonomous() {
@@ -491,25 +489,32 @@ void opcontrol() {
 		//left joystick forward/back
 		//rigth joystick left/right
 
-
-
-
-
-
-
-		
-        
+		if (master.get_digital(DIGITAL_R1)){
+            feed.move_velocity(-600);
+            top.move_velocity(-600);
 			//intake without score
+           
+        }else if(master.get_digital(DIGITAL_R2)){
+            feed.move_velocity(600);
 			//outake for bottom mid goals
+           
+        }else if (master.get_digital(DIGITAL_L1)){
+            top.move_velocity(600);
+            feed.move_velocity(-600);
+            middle.move_velocity(600);
 			//outake for top mid goals
+
+        }else if(master.get_digital(DIGITAL_L2)){
+            top.move_velocity(600);
+            feed.move_velocity(-600);
+            middle.move_velocity(-600);
 			//outake for long goals goals
-        
-
-
-
-
-        
-
+           
+        }else{
+            top.move_velocity(0);
+            feed.move_velocity(0);
+            middle.move_velocity(0);
+        }
 
         if (master.get_digital_new_press(DIGITAL_A)) {
             alll = !alll;
@@ -524,7 +529,7 @@ void opcontrol() {
             alligner.set_value(alll);
 			//invert boolean logic (normal edition)
         }
-        pros::delay(10);
+        pros::delay(20);
     }
 
 }
