@@ -19,7 +19,7 @@ pros::adi::DigitalOut middle (6);
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
-pros::Imu imu(18); //reminder to change later to whatever is convinet
+pros::Imu imu(9); //reminder to change later to whatever is convinet
 
 // Robot Physical Constants for odometry
 const double wheelDiameter = 3.25; // inches
@@ -112,9 +112,10 @@ private:
 		double maxVel;
 		double maxAccel;
 		bool complete = false;
-	} linearProfile, angularProfile;
+	};
 
 public:
+	Profile linearProfile, angularProfile;
 	PosControl() : 
 		linearPID(800.0, 5.0, 150.0, 3000, maxVoltage),
 		angularPID(5000.0, 10.0, 800.0, 2000, maxVoltage),
@@ -297,20 +298,20 @@ void odometryTask(void* param) {
         lastTime = currentTime;
 
 		// Display
-		pros::lcd::set_text(0, "Voltage Native PID");
+		// pros::lcd::set_text(0, "Voltage Native PID");
 
-		char buf[64];
+		// char buf[64];
 
-			sprintf(buf, "X:%.1f Y:%.1f θ:%.1f°",
-        	robotPos.x,
-        	robotPos.y,
-        	robotPos.theta * 180.0 / M_PI);
-		pros::lcd::set_text(1, buf);
+		// 	sprintf(buf, "X:%.1f Y:%.1f θ:%.1f°",
+        // 	robotPos.x,
+        // 	robotPos.y,
+        // 	robotPos.theta * 180.0 / M_PI);
+		// pros::lcd::set_text(1, buf);
 
-		sprintf(buf, "VL:%.1f VR:%.1f in/s",
-        	robotPos.vLeft,
-        	robotPos.vRight);
-		pros::lcd::set_text(2, buf);
+		// sprintf(buf, "VL:%.1f VR:%.1f in/s",
+        // 	robotPos.vLeft,
+        // 	robotPos.vRight);
+		// pros::lcd::set_text(2, buf);
 
         pros::delay(10);
 	}
@@ -380,9 +381,9 @@ void moveToPosVolt(double targetX, double targetY, double targetThetaDeg, bool r
     	}
 
 		// Debug display
-    	pros::lcd::print(3, "L:%dV R:%dV", (int)leftVoltage, (int)rightVoltage); 
-		pros::lcd::print(4, "Dist:%.2f Ang:%.1f", distance, angleError * 180.0 / M_PI); 
-		pros::lcd::print(5, "Settle:%d/20", settleCount); 
+    	// pros::lcd::print(3, "L:%dV R:%dV", (int)leftVoltage, (int)rightVoltage); 
+		// pros::lcd::print(4, "Dist:%.2f Ang:%.1f", distance, angleError * 180.0 / M_PI); 
+		// pros::lcd::print(5, "Settle:%d/20", settleCount); 
 		pros::delay(10);
 	}
 
@@ -396,14 +397,14 @@ void moveToPosVolt(double targetX, double targetY, double targetThetaDeg, bool r
 }
 
 void initialize() {
-	pros::lcd::initialize();
-    pros::lcd::set_text(0, "Initializing...");
+	// pros::lcd::initialize();
+    // pros::lcd::set_text(0, "Initializing...");
     
     // Configure motor directions
-    left_side_front.set_reversed(false);
-    left_side_back.set_reversed(false);
-    right_side_front.set_reversed(true);
-    right_side_back.set_reversed(true);
+    left_side_front.set_reversed(true);
+    left_side_back.set_reversed(true);
+    right_side_front.set_reversed(false);
+    right_side_back.set_reversed(false);
     
     // Configure brake modes for autonomous
     left_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
@@ -426,8 +427,8 @@ void initialize() {
     // Wait for IMU calibration
     pros::delay(2000);
     
-    pros::lcd::clear();
-    pros::lcd::set_text(0, "System Ready");
+    // pros::lcd::clear();
+    // pros::lcd::set_text(0, "System Ready");
 }
 
 void disabled() {}
@@ -436,28 +437,33 @@ void competition_initialize() {}
 
 void autonomous() {
 	autonActive = true;
-    pros::lcd::set_text(0, "Autonomous Running");
+    //pros::lcd::set_text(0, "Autonomous Running");
     
     // Test movements
-    moveToPosVolt(24.0, 0.0, 0.0, true);  // Move 24 inches forward
-    pros::delay(500);
+    moveToPosVolt(12.0, 0.0, 0.0, true);  // Move 24 inches forward
+    // pros::delay(500);
     
-    moveToPosVolt(0.0, 0.0, 90.0, true);  // Turn 90 degrees
-    pros::delay(500);
+    //moveToPosVolt(0.0, 0.0, 90.0, true);  // Turn 90 degrees
+    // pros::delay(500);
     
-    moveToPosVolt(12.0, 0.0, 90.0, true);  // Move 12 inches
-    pros::delay(500);
+    // moveToPosVolt(12.0, 0.0, 90.0, true);  // Move 12 inches
+    // pros::delay(500);
     
-    moveToPosVolt(0.0, 0.0, 0.0, true);  // Turn back to 0
-    pros::delay(500);
+    // moveToPosVolt(0.0, 0.0, 0.0, true);  // Turn back to 0
+    // pros::delay(500);
     
-    moveToPosVolt(-36.0, 0.0, 0.0, true);  // Move back to start
+    // moveToPosVolt(-36.0, 0.0, 0.0, true);  // Move back to start
     
     autonActive = false;
-    pros::lcd::set_text(0, "Autonomous Complete");
+    //pros::lcd::set_text(0, "Autonomous Complete");
 }
 
 void opcontrol() {
+	left_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    left_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    right_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    right_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+
     descore.set_value(false);
     flap.set_value(false);
     middle.set_value(true);
