@@ -21,17 +21,10 @@ pros::Controller master(pros::E_CONTROLLER_MASTER);
 pros::Imu imu(9);
 
 // Physical constants
-const double wheelDiameter = 3.25; // inches
-const double trackWidth = 12; // inches between left/right wheels
-
-// GEAR RATIO FIX: Blue motors (450RPM) vs Green motors (600RPM)
-// Ratio: 600/450 = 1.3333...
-// Blue motors need to spin 1.333x MORE degrees to cover same distance
-const double gearRatioCorrection = 600.0 / 450.0; // 1.3333
-
-// Corrected degrees per inch calculation
-const double degreesPerInch = ((360.0 * gearRatioCorrection) / (M_PI * wheelDiameter));
-const double maxVoltage = 12000.0;
+const double WHEEL_DIAMETER = 3.25;
+const double GEAR_RATIO = 600.0 / 450.0;
+const double DEG_PER_INCH = (360.0 * GEAR_RATIO) / (M_PI * WHEEL_DIAMETER);
+const int MAX_VOLTAGE = 12000;
 
 // PID controller for forward/backward movement
 class MovePID {
@@ -292,10 +285,10 @@ void initialize() {
     right_side_back.set_reversed(false);
     
     // Set brake modes for autonomous
-    left_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-    left_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-    right_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-    right_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    left_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    left_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    right_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    right_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     
     // Reset motor positions
     left_side_front.tare_position();
