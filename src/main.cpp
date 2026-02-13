@@ -13,9 +13,9 @@ pros::Motor middleRight(20, pros::v5::MotorGears::blue, pros::v5::MotorUnits::de
 pros::Motor middleLeft(18, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
 pros::Motor top(19, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
 
+pros::adi::DigitalOut DoublePark(6);
 pros::adi::DigitalOut descore(7);
-pros::adi::DigitalOut flap(8);
-pros::adi::DigitalOut middle(6);
+pros::adi::DigitalOut scrapper(8);
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 pros::Imu imu(9);
@@ -27,35 +27,34 @@ const double DEG_PER_INCH = (360.0 * GEAR_RATIO) / (M_PI * WHEEL_DIAMETER);
 const int MAX_VOLTAGE = 12000;
 
 // PID values (TUNE LATER just random values)
-double kP_move = 700;
-double kI_move = 0.0;
-double kD_move = 220;
+double kP_move = 900;
+double kI_move = 0;
+double kD_move = 200;
 
-double kP_turn = 95;
-double kI_turn = 0.0;
-double kD_turn = 520;
+double kP_turn = 275;
+double kI_turn = 0;
+double kD_turn = 10;
 
-double kP_heading = 60;
+double kP_heading = 0;
 
-// struct ODOM
-struct Odometry {
-    double x = 0;
-    double y = 0;
-    double heading = 0;
+// ODOM
+double global_x = 0;
+double global_y = 0;
+double global_heading = 0;
 
-    double left_in = 0;
-    double right_in = 0;
-} odom;
+double local_x = 0;
+double local_y = 0;
+
+double prev_left_in = 0;
+double prev_right_in = 0;
 
 // Helpers
 double degToIn(double deg) {
     return deg / DEG_PER_INCH;
 }
 double getHeading() {
-    if (imu.is_calibrating()) return odom.heading;
-    double h = fmod(imu.get_rotation(), 360.0);
-    if (h < 0) h += 360.0;
-    return h;
+    if (imu.is_calibrating()) return 0;
+    return imu.get_rotation();
 }
 void setDriveVoltage(double left, double right) {
     left_side_front.move_voltage(left);
@@ -75,123 +74,158 @@ void updateOdometry() {
     double left_now = degToIn(getLeftDeg());
     double right_now = degToIn(getRightDeg());
 
-    double dL = left_now - odom.left_in;
-    double dR = right_now - odom.right_in;
+    double dL = left_now - prev_left_in;
+    double dR = right_now - prev_right_in;
+
+    prev_left_in = left_now;
+    prev_right_in = right_now;
+
     double dC = (dL + dR) / 2.0;
 
-    odom.heading = getHeading();
-    double rad = odom.heading * M_PI / 180.0;
+    global_heading = getHeading();
+    double rad = global_heading * M_PI / 180.0;
 
-    odom.x += dC * cos(rad);
-    odom.y += dC * sin(rad);
+    double dx = dC * cos(rad);
+    double dy = dC * sin(rad);
 
-    odom.left_in = left_now;
-    odom.right_in = right_now;
+    global_x += dx;
+    global_y += dy;
+
+    local_x += dx;
+    local_y += dy;
 }
+
 
 // ODOM + PID
 void moveDistance(double inches, int timeout = 3000) {
+
+    // Reset motor encoders
     left_side_front.tare_position();
     left_side_back.tare_position();
     right_side_front.tare_position();
     right_side_back.tare_position();
 
-    odom.left_in = 0;
-    odom.right_in = 0;
+    prev_left_in = 0;
+    prev_right_in = 0;
 
     updateOdometry();
 
-    double start_x = odom.x;
-    double start_y = odom.y;
-    double start_h = odom.heading * M_PI / 180.0;
-
-    double target_x = start_x + inches * cos(start_h);
-    double target_y = start_y + inches * sin(start_h);
+    double start_x = global_x;
+    double start_y = global_y;
+    double start_heading = getHeading();
 
     double last_error = 0;
     double integral = 0;
 
-    int start = pros::millis();
+    int start_time = pros::millis();
 
-    while (pros::millis() - start < timeout) {
+    while (pros::millis() - start_time < timeout) {
+
         updateOdometry();
 
-        double dx = target_x - odom.x;
-        double dy = target_y - odom.y;
-        double dist_error = sqrt(dx * dx + dy * dy);
+        // Project movement onto starting heading
+        double dx = global_x - start_x;
+        double dy = global_y - start_y;
 
-        if (dist_error < 0.3) break;
+        double start_rad = start_heading * M_PI / 180.0;
 
-        double derivative = dist_error - last_error;
-        last_error = dist_error;
+        double traveled = dx * cos(start_rad) + dy * sin(start_rad);
 
-        if (fabs(dist_error) < 8)
-            integral += dist_error;
+        double error = inches - traveled;
 
-        double power =
-            dist_error * kP_move +
-            integral * kI_move +
-            derivative * kD_move;
-
-        if (power > MAX_VOLTAGE) power = MAX_VOLTAGE;
-		if (power < -MAX_VOLTAGE) power = -MAX_VOLTAGE;
-
-        double target_heading = atan2(dy, dx) * 180.0 / M_PI;
-        double heading_error = target_heading - odom.heading;
-        if (heading_error > 180) heading_error -= 360;
-        if (heading_error < -180) heading_error += 360;
-
-        double correction = heading_error * kP_heading;
-
-        setDriveVoltage(power - correction, power + correction);
-        pros::delay(10);
-    }
-
-    setDriveVoltage(0, 0);
-}
-
-void turnToAngle(double target, int timeout = 2000) {
-    double last_error = 0;
-    double integral = 0;
-
-    int start = pros::millis();
-
-    while (pros::millis() - start < timeout) {
-        double heading = getHeading();
-        double error = target - heading;
-
-        if (error > 180) error -= 360;
-        if (error < -180) error += 360;
-
-        if (fabs(error) < 1.0) break;
-
+        // Stop condition
+        if (fabs(error) < 0.05){
+            break;
+        }
+        // PID
         double derivative = error - last_error;
         last_error = error;
 
-        if (fabs(error) < 20)
+        if (fabs(error) < 6){
             integral += error;
+        }else{
+            integral = 0;
+        }
+            
+        double power = error * kP_move + integral * kI_move + derivative * kD_move;
 
-        double power =
-            error * kP_turn +
-            integral * kI_turn +
-            derivative * kD_turn;
+        // Heading correction
+        double heading_error = start_heading - getHeading();
 
+        while (heading_error > 180) heading_error -= 360;
+        while (heading_error < -180) heading_error += 360;
+
+        double turn_correction = heading_error * kP_heading;
+
+        // Clamp
         if (power > MAX_VOLTAGE) power = MAX_VOLTAGE;
-		if (power < -MAX_VOLTAGE) power = -MAX_VOLTAGE;
+        if (power < -MAX_VOLTAGE) power = -MAX_VOLTAGE;
 
-        setDriveVoltage(-power, power);
-        pros::delay(10);
+        setDriveVoltage(power - turn_correction, power + turn_correction);
+
+        pros::delay(5);
     }
 
     setDriveVoltage(0, 0);
 }
 
-void turnRelative(double deg, int timeout = 2000) {
-    double target = getHeading() + deg;
-    target = fmod(target, 360.0);
-    if (target < 0) target += 360.0;
-    turnToAngle(target, timeout);
+
+
+
+void turnToAngle(double degrees, int timeout = 6000) {
+
+    double startHeading = imu.get_rotation();
+    double target = startHeading + degrees;
+
+    double error = 0;
+    double lastError = 0;
+    double integral = 0;
+
+    int settleTime = 0;
+    int startTime = pros::millis();
+
+    while (pros::millis() - startTime < timeout) {
+
+        double current = imu.get_rotation();
+        error = target - current;
+
+        // Wrap to shortest path
+        while (error > 180) error -= 360;
+        while (error < -180) error += 360;
+
+        // Integral only near target (prevents windup)
+        if (fabs(error) < 10){
+            integral += error;
+        }else{
+            integral = 0;
+        }
+
+        double derivative = error - lastError;
+        lastError = error;
+
+        double power = (error * kP_turn) + (integral * kI_turn) + (derivative * kD_turn);
+
+        // Clamp
+        if (power > MAX_VOLTAGE) power = MAX_VOLTAGE;
+        if (power < -MAX_VOLTAGE) power = -MAX_VOLTAGE;
+
+        setDriveVoltage(power, -power);
+
+        // Settling condition
+        if (fabs(error) < 0.5) {
+            break;
+        }
+
+        pros::delay(5);
+    }
+    setDriveVoltage(0, 0);
+    pros::delay(200);
 }
+
+
+
+
+
 
 void initialize() {
     // Configure motor directions
@@ -201,15 +235,16 @@ void initialize() {
     right_side_back.set_reversed(false);
     
     // Set brake modes for autonomous
-    left_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
-    left_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
-    right_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
-    right_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+    left_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    left_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    right_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    right_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
     imu.reset();
-    pros::delay(2000);
-
-    odom.heading = getHeading();
+    while (imu.is_calibrating()) {
+        pros::delay(20);
+    }
+    pros::delay(200);
 }
 
 void disabled() {
@@ -219,11 +254,19 @@ void competition_initialize() {
 }
 
 void autonomous() {
-	moveDistance(24);
-    turnRelative(90);
-    moveDistance(12);
-    turnRelative(-90);
-    moveDistance(-24);
+    turnToAngle(90);
+    turnToAngle(90);
+    turnToAngle(90);
+    turnToAngle(90);
+
+
+    pros::screen::print(pros::E_TEXT_MEDIUM, 1, "Heading: %.2f", imu.get_rotation());
+	pros::screen::print(pros::E_TEXT_MEDIUM, 2, "Global X: %.2f, Global Y: %.2f", global_x, global_y);
+    pros::screen::print(pros::E_TEXT_MEDIUM, 3, "Global X: %.2f, Global Y: %.2f", local_x, local_y);
+    pros::screen::print(pros::E_TEXT_MEDIUM, 4, "Temp ML: %.2f, Temp MR: %.2f, Temp Top: %.2f", middleLeft.get_temperature(), middleRight.get_temperature(), top.get_temperature());
+    pros::screen::print(pros::E_TEXT_MEDIUM, 5, "Temp LF: %.2f, Temp LB: %.2f, Temp RF: %.2f, Temp RB: %.2f", left_side_front.get_temperature(), left_side_back.get_temperature(), right_side_front.get_temperature(), right_side_back.get_temperature());
+    pros::screen::print(pros::E_TEXT_MEDIUM, 6, "Temp RF: %.2f, Temp RB: %.2f", right_side_front.get_temperature(), right_side_back.get_temperature());
+	
 }
 
 void opcontrol() {
@@ -231,16 +274,16 @@ void opcontrol() {
     left_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
     left_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
     right_side_front.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-    right_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-    
+    right_side_back.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);	
+
     // Initialize pneumatics
     descore.set_value(false);
-    flap.set_value(false);
-    middle.set_value(true);
+    scrapper.set_value(false);
+    DoublePark.set_value(true);
     
-    bool dlll = false;
-    bool flll = true;
-    bool mlll = false;
+    bool dlll = false; // descore
+    bool slll = true; // scrapper
+    bool plll = false; // double park (p for park)
     
     
     while (true) {
@@ -280,8 +323,8 @@ void opcontrol() {
         
         // Pneumatic controls
         if (master.get_digital_new_press(DIGITAL_A)) {
-            flll = !flll;
-            flap.set_value(flll);
+            slll = !slll;
+            scrapper.set_value(slll);
         }
         
         if (master.get_digital_new_press(DIGITAL_B)) {
@@ -290,8 +333,8 @@ void opcontrol() {
         }
         
         if (master.get_digital_new_press(DIGITAL_Y)) {
-            mlll = !mlll;
-            middle.set_value(mlll);
+            plll = !plll;
+            DoublePark.set_value(plll);
         }
         
         pros::delay(20);
