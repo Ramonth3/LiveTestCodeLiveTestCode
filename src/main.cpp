@@ -258,11 +258,41 @@ void competition_initialize() {
 }
 
 void autonomous() {
-
-
-
-
-
+    middleRight.move_velocity(-600);
+    middleLeft.move_velocity(600);
+    setDriveVoltage(4750, 7500);
+    pros::delay(800);
+    setDriveVoltage(3300, 6000);
+    pros::delay(500);
+    setDriveVoltage(3000, 3000);
+    pros::delay(700);
+    setDriveVoltage(0, 0);
+    pros::delay(175);
+    setDriveVoltage(-2000, -6000);
+    pros::delay(530);
+    setDriveVoltage(-7000, -1000);
+    pros::delay(740);
+    setDriveVoltage(0, 0);
+    pros::delay(10);
+    moveDistance(-9);
+    pros::delay(10);
+    //descore.set_value(true);
+    //pros::delay(250);
+    top.move_velocity(-600);
+    pros::delay(650);
+    top.move_velocity(0);
+    middleRight.move_velocity(0);
+    middleLeft.move_velocity(0);
+    
+    setDriveVoltage(3000, 6000);
+    pros::delay(700);
+    setDriveVoltage(7000, 1000);
+    pros::delay(677);
+    setDriveVoltage(0, 0);
+    pros::delay(250);
+    moveDistance(22);
+    pros::delay(250);
+    turnToAngle(-90);
 
     
 
