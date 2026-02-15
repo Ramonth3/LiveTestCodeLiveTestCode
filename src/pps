@@ -258,55 +258,9 @@ void competition_initialize() {
 }
 
 void autonomous() {
-    //go to loader
-    moveDistance(28);
-    pros::delay(200);
-    turnToAngle(-90);
-    pros::delay(50);
-
-    //intake blocks from loader
-    scrapper.set_value(true);
-    middleRight.move_velocity(-600);
-    middleLeft.move_velocity(600);
-    pros::delay(50);
-    moveDistance(12); //setDriveVoltage(4000, 4000);
-    pros::delay(1100);
-    //setDriveVoltage(0, 0);
-    //pros::delay(100);
-
-    //move back to long goal
-    moveDistance(-30);
-    pros::delay(50);
-
-    //score
-    top.move_velocity(-600);
-    scrapper.set_value(false);
-    pros::delay(1000);
-
-    //move foward for the middle
-    moveDistance(19);
-    pros::delay(200);
-
-    //turn towards the middle blocks
-    turnToAngle(-135);
-    top.move_velocity(0);
-    pros::delay(50);
-
-    //move foward and intake
-    setDriveVoltage(6000, 6000);
-    pros::delay(1200);
-    setDriveVoltage(0, 0);
-    pros::delay(200);
-
-    //turn to score for middle goal
-    turnToAngle(-180);
-    pros::delay(100); //go backwards into middle goal
-    // then activate middle goal scoring pnuematic
-    top.move_velocity(-600);
-    middleRight.move_velocity(-600);
-    middleLeft.move_velocity(600);
-    
-
+setDriveVoltage(4000, 6000);
+pros::delay(1000);
+setDriveVoltage(0, 0);
 
 
 
