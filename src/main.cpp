@@ -31,9 +31,9 @@ double kP_move = 900;
 double kI_move = 0;
 double kD_move = 200;
 
-double kP_turn = 275;
-double kI_turn = 0;
-double kD_turn = 10;
+double kP_turn = 200;
+double kI_turn = 0.00025;
+double kD_turn = 1000;
 
 double kP_heading = 0;
 
@@ -97,7 +97,7 @@ void updateOdometry() {
 
 
 // ODOM + PID
-void moveDistance(double inches, int timeout = 3000) {
+void moveDistance(double inches, int timeout = 6000) {
 
     // Reset motor encoders
     left_side_front.tare_position();
@@ -134,7 +134,7 @@ void moveDistance(double inches, int timeout = 3000) {
         double error = inches - traveled;
 
         // Stop condition
-        if (fabs(error) < 0.05){
+        if (fabs(error) < 0.5){
             break;
         }
         // PID
@@ -172,7 +172,7 @@ void moveDistance(double inches, int timeout = 3000) {
 
 
 
-void turnToAngle(double degrees, int timeout = 6000) {
+void turnToAngle(double degrees, int timeout = 1000000000000000000000000000) {
 
     double startHeading = imu.get_rotation();
     double target = startHeading + degrees;
@@ -212,13 +212,17 @@ void turnToAngle(double degrees, int timeout = 6000) {
         setDriveVoltage(power, -power);
 
         // Settling condition
-        if (fabs(error) < 0.5) {
+        if (fabs(error) < 1) {
             break;
         }
 
         pros::delay(5);
     }
     setDriveVoltage(0, 0);
+    left_side_front.brake();
+    left_side_back.brake();
+    right_side_front.brake();
+    right_side_back.brake();
     pros::delay(200);
 }
 
