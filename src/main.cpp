@@ -95,7 +95,6 @@ void updateOdometry() {
     local_y += dy;
 }
 
-
 // ODOM + PID
 void moveDistance(double inches, int timeout = 6000) {
 
@@ -169,9 +168,6 @@ void moveDistance(double inches, int timeout = 6000) {
     setDriveVoltage(0, 0);
 }
 
-
-
-
 void turnToAngle(double degrees, int timeout = 1000000000000000000000000000) {
 
     double startHeading = imu.get_rotation();
@@ -208,7 +204,6 @@ void turnToAngle(double degrees, int timeout = 1000000000000000000000000000) {
         // Clamp
         if (power > MAX_VOLTAGE) power = MAX_VOLTAGE;
         if (power < -MAX_VOLTAGE) power = -MAX_VOLTAGE;
-
         setDriveVoltage(power, -power);
 
         // Settling condition
@@ -218,6 +213,7 @@ void turnToAngle(double degrees, int timeout = 1000000000000000000000000000) {
 
         pros::delay(5);
     }
+    
     setDriveVoltage(0, 0);
     left_side_front.brake();
     left_side_back.brake();
@@ -225,11 +221,6 @@ void turnToAngle(double degrees, int timeout = 1000000000000000000000000000) {
     right_side_back.brake();
     pros::delay(200);
 }
-
-
-
-
-
 
 void initialize() {
     // Configure motor directions
@@ -258,11 +249,6 @@ void competition_initialize() {
 }
 
 void autonomous() {
-    turnToAngle(90);
-    turnToAngle(90);
-    turnToAngle(90);
-    turnToAngle(90);
-
 
     pros::screen::print(pros::E_TEXT_MEDIUM, 1, "Heading: %.2f", imu.get_rotation());
 	pros::screen::print(pros::E_TEXT_MEDIUM, 2, "Global X: %.2f, Global Y: %.2f", global_x, global_y);
@@ -270,7 +256,6 @@ void autonomous() {
     pros::screen::print(pros::E_TEXT_MEDIUM, 4, "Temp ML: %.2f, Temp MR: %.2f, Temp Top: %.2f", middleLeft.get_temperature(), middleRight.get_temperature(), top.get_temperature());
     pros::screen::print(pros::E_TEXT_MEDIUM, 5, "Temp LF: %.2f, Temp LB: %.2f, Temp RF: %.2f, Temp RB: %.2f", left_side_front.get_temperature(), left_side_back.get_temperature(), right_side_front.get_temperature(), right_side_back.get_temperature());
     pros::screen::print(pros::E_TEXT_MEDIUM, 6, "Temp RF: %.2f, Temp RB: %.2f", right_side_front.get_temperature(), right_side_back.get_temperature());
-	
 }
 
 void opcontrol() {
@@ -304,21 +289,21 @@ void opcontrol() {
         right_side_back.move(right);
         
         // Intake/outtake control (unchanged)
-        if (master.get_digital(DIGITAL_R1)) {
+        if (master.get_digital(DIGITAL_R1)) { //intake
             middleRight.move_velocity(-600);
             middleLeft.move_velocity(600);
-        } else if (master.get_digital(DIGITAL_R2)) {
+        } else if (master.get_digital(DIGITAL_R2)) { //outtake
             middleRight.move_velocity(600);
             middleLeft.move_velocity(-600);
             top.move_velocity(600);
-        } else if (master.get_digital(DIGITAL_L1)) {
+        } else if (master.get_digital(DIGITAL_L1)) { //top goal scoring
             top.move_velocity(-600);
             middleRight.move_velocity(-600);
             middleLeft.move_velocity(600);
-        } else if (master.get_digital(DIGITAL_L2)) {
-            top.move_velocity(-600);
-            middleRight.move_velocity(-600);
-            middleLeft.move_velocity(600);
+        } else if (master.get_digital(DIGITAL_L2)) { //this is for middle goal scoring, tune this for skills ez 7 block control
+            top.move_velocity(-300);
+            middleRight.move_velocity(-300);
+            middleLeft.move_velocity(300);
         } else {
             top.move_velocity(0);
             middleRight.move_velocity(0);
